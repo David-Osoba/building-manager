@@ -10,6 +10,7 @@ export default function EngineerDashboard() {
     status: 'Working',
     last_checked: new Date().toISOString().split('T')[0] 
   });
+  const [filter, setFilter] = useState('Open')
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -48,7 +49,8 @@ export default function EngineerDashboard() {
   };
 
   // NEW: Sort faults so CRITICAL is always at the top, then Urgent, then Routine
-  const sortedFaults = [...faultReports].sort((a, b) => {
+const filteredFaults = faultReports.filter(r => filter === 'All' ? true : r.status === filter)
+const sortedFaults = [...filteredFaults].sort((a, b) => {
     // If severity is missing for some reason, default to 1 (Routine)
     const weightA = { 'CRITICAL': 3, 'Urgent': 2, 'Routine': 1 }[a.severity] || 1;
     const weightB = { 'CRITICAL': 3, 'Urgent': 2, 'Routine': 1 }[b.severity] || 1;
@@ -78,7 +80,28 @@ export default function EngineerDashboard() {
       
       {/* Active Fault Reports Table */}
       <div style={{ marginBottom: '40px' }}>
-        <h3 style={{ color: '#d9534f' }}>🚨 Active Fault Reports</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
+  <h3 style={{ color: '#d9534f', margin: 0 }}>🚨 Fault Reports</h3>
+  <div style={{ display: 'flex', gap: '8px' }}>
+    {['Open', 'Resolved', 'All'].map(f => (
+      <button
+        key={f}
+        onClick={() => setFilter(f)}
+        style={{
+          padding: '4px 12px',
+          borderRadius: '20px',
+          border: '1px solid #ccc',
+          cursor: 'pointer',
+          fontWeight: filter === f ? 'bold' : 'normal',
+          backgroundColor: filter === f ? '#0056b3' : 'white',
+          color: filter === f ? 'white' : 'black'
+        }}
+      >
+        {f}
+      </button>
+    ))}
+  </div>
+</div>
         <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', background: '#fffafb' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #ccc' }}>
