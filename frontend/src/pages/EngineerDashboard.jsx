@@ -1,0 +1,166 @@
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+
+export default function EngineerDashboard() {
+  const [equipmentList, setEquipmentList] = useState([]);
+  const [faultReports, setFaultReports] = useState([]); 
+  const [formData, setFormData] = useState({
+    name: '',
+    location: '',
+    status: 'Working',
+    last_checked: new Date().toISOString().split('T')[0] 
+  });
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const [equipRes, faultRes] = await Promise.all([
+          axios.get('http://localhost:3000/equipment'),
+          axios.get('http://localhost:3000/faults')
+        ]);
+        
+        setEquipmentList(equipRes.data);
+        setFaultReports(faultRes.data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+    
+    loadInitialData();
+  }, []);
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post('http://localhost:3000/equipment', formData);
+      
+      const response = await axios.get('http://localhost:3000/equipment');
+      setEquipmentList(response.data);
+      
+      setFormData({ ...formData, name: '', location: '' }); 
+    } catch (error) {
+      console.error('Error adding equipment:', error);
+    }
+  };
+
+  // NEW: Sort faults so CRITICAL is always at the top, then Urgent, then Routine
+  const sortedFaults = [...faultReports].sort((a, b) => {
+    // If severity is missing for some reason, default to 1 (Routine)
+    const weightA = { 'CRITICAL': 3, 'Urgent': 2, 'Routine': 1 }[a.severity] || 1;
+    const weightB = { 'CRITICAL': 3, 'Urgent': 2, 'Routine': 1 }[b.severity] || 1;
+    return weightB - weightA;
+  });
+
+  return (
+    <div>
+      <h2>Engineer Dashboard: Command Center</h2>
+      
+      {/* Active Fault Reports Table */}
+      <div style={{ marginBottom: '40px' }}>
+        <h3 style={{ color: '#d9534f' }}>🚨 Active Fault Reports</h3>
+        <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', background: '#fffafb' }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid #ccc' }}>
+              <th>Report ID</th>
+              <th>Reported By</th>
+              <th>Role</th>
+              <th>Severity</th> {/* Added Severity Header */}
+              <th>Description</th>
+              <th>Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedFaults.map((report) => (
+              <tr key={report.id} style={{ 
+                borderBottom: '1px solid #eee',
+                backgroundColor: report.severity === 'CRITICAL' ? '#ffebee' : 'transparent' // Highlight critical rows
+              }}>
+                <td>{report.id}</td>
+                <td>{report.reported_by}</td>
+                <td>{report.role}</td>
+                
+                {/* NEW: Severity Badge */}
+                <td>
+                  <span style={{
+                    padding: '3px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold',
+                    backgroundColor: report.severity === 'CRITICAL' ? 'red' : report.severity === 'Urgent' ? 'gold' : 'lightgreen',
+                    color: report.severity === 'CRITICAL' ? 'white' : 'black'
+                  }}>
+                    {report.severity || 'Routine'}
+                  </span>
+                </td>
+
+                <td>{report.description}</td>
+                <td>{new Date(report.date_reported).toLocaleString()}</td>
+                <td style={{ color: 'orange', fontWeight: 'bold' }}>{report.status}</td>
+              </tr>
+            ))}
+            {sortedFaults.length === 0 && (
+              <tr><td colSpan="7" style={{ textAlign: 'center', padding: '15px' }}>No active faults. All clear!</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <hr style={{ margin: '30px 0', border: '1px solid #ddd' }} />
+
+      {/* Form to log new equipment */}
+      <div style={{ background: '#f4f4f4', padding: '15px', borderRadius: '5px', marginBottom: '20px' }}>
+        <h3>Log New Equipment</h3>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <input 
+            type="text" name="name" placeholder="Equipment Name" 
+            value={formData.name} onChange={handleInputChange} required 
+          />
+          <input 
+            type="text" name="location" placeholder="Location" 
+            value={formData.location} onChange={handleInputChange} required 
+          />
+          <select name="status" value={formData.status} onChange={handleInputChange}>
+            <option value="Working">Working</option>
+            <option value="Maintenance Required">Maintenance Required</option>
+            <option value="Out of Order">Out of Order</option>
+          </select>
+          <button type="submit" style={{ padding: '5px 15px', cursor: 'pointer' }}>Add Asset</button>
+        </form>
+      </div>
+
+      {/* Equipment Inventory Table */}
+      <h3>Current Inventory</h3>
+      <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ borderBottom: '2px solid #ccc' }}>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Location</th>
+            <th>Status</th>
+            <th>Last Checked</th>
+          </tr>
+        </thead>
+        <tbody>
+          {equipmentList.map((item) => (
+            <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
+              <td>{item.id}</td>
+              <td>{item.name}</td>
+              <td>{item.location}</td>
+              <td>
+                <span style={{ color: item.status === 'Working' ? 'green' : 'red', fontWeight: 'bold' }}>
+                  {item.status}
+                </span>
+              </td>
+              <td>{item.last_checked}</td>
+            </tr>
+          ))}
+          {equipmentList.length === 0 && (
+            <tr><td colSpan="5" style={{ textAlign: 'center', padding: '10px' }}>No equipment logged yet.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
