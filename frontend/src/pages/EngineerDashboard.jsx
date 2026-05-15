@@ -54,6 +54,15 @@ export default function EngineerDashboard() {
     const weightB = { 'CRITICAL': 3, 'Urgent': 2, 'Routine': 1 }[b.severity] || 1;
     return weightB - weightA;
   });
+    const resolveFault = async (id) => {
+  try {
+    await axios.patch(`http://localhost:3000/faults/${id}`, { status: 'Resolved' })
+    const response = await axios.get('http://localhost:3000/faults')
+    setFaultReports(response.data)
+  } catch (error) {
+    console.error('Error resolving fault:', error)
+  }
+}
 
   return (
     <div>
@@ -97,7 +106,22 @@ export default function EngineerDashboard() {
 
                 <td>{report.description}</td>
                 <td>{new Date(report.date_reported).toLocaleString()}</td>
-                <td style={{ color: 'orange', fontWeight: 'bold' }}>{report.status}</td>
+                <td>
+  {report.status === 'Open' ? (
+    <button 
+      onClick={() => resolveFault(report.id)}
+      style={{ 
+        backgroundColor: '#28a745', color: 'white', 
+        border: 'none', padding: '4px 10px', 
+        borderRadius: '4px', cursor: 'pointer',
+        fontWeight: 'bold'
+      }}>
+      Mark Resolved
+    </button>
+  ) : (
+    <span style={{ color: 'green', fontWeight: 'bold' }}>✅ Resolved</span>
+  )}
+</td>
               </tr>
             ))}
             {sortedFaults.length === 0 && (
