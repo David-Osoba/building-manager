@@ -39,20 +39,27 @@ app.get('/faults', (req, res) => {
   res.json(faults)
 })
 
-// Inside server.js
 app.post('/faults', (req, res) => {
-  // 1. Add severity to the destructured body
-  const { equipment_id, reported_by, role, description, severity } = req.body;
+  const { equipment_id, reported_by, role, description, severity, unlisted_name } = req.body
   
-  // 2. Add severity to the INSERT statement and values
+  let finalEquipmentId = equipment_id
+
+  // If unlisted, auto-add it to the equipment table first
+  if (!equipment_id && unlisted_name) {
+    const result = db.prepare(`
+      INSERT INTO equipment (name, location, status, last_checked)
+      VALUES (?, ?, ?, ?)
+    `).run(unlisted_name, 'Unknown - Please Update', 'Faulty', new Date().toISOString().split('T')[0])
+    finalEquipmentId = result.lastInsertRowid
+  }
+
   const result = db.prepare(`
     INSERT INTO fault_reports (equipment_id, reported_by, role, description, severity)
     VALUES (?, ?, ?, ?, ?)
-  `).run(equipment_id, reported_by, role, description, severity || 'Routine');
-  
-  res.json({ id: result.lastInsertRowid, message: 'Fault reported!' });
-});
+  `).run(finalEquipmentId, reported_by, role, description, severity)
 
+  res.json({ id: result.lastInsertRowid, message: 'Fault reported!' })
+})
 // Update fault report status
 app.patch('/faults/:id', (req, res) => {
   const { status } = req.body
@@ -60,6 +67,14 @@ app.patch('/faults/:id', (req, res) => {
     UPDATE fault_reports SET status = ? WHERE id = ?
   `).run(status, req.params.id)
   res.json({ message: 'Fault updated!' })
+})
+// Update equipment status
+app.patch('/equipment/:id', (req, res) => {
+const { status } = req.body
+db.prepare(`
+    UPDATE equipment SET status = ? WHERE id = ?
+`).run(status, req.params.id)
+res.json({ message: 'Equipment updated!' })
 })
 
 app.listen(PORT, () => {

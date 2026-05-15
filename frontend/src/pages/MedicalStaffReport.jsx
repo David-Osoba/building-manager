@@ -33,34 +33,36 @@ export default function MedicalStaffReport() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = { ...formData };
-      
-      if (payload.equipment_id === 'unlisted') {
-        payload.equipment_id = null; 
-        payload.description = `[UNLISTED MACHINE: ${unlistedInfo}] - ${payload.description}`;
-      }
+    const payload = { ...formData };
+        if (!payload.description) {
+        payload.description = 'No description provided - Emergency submission';
+        }
+        if (payload.equipment_id === 'unlisted') {
+        payload.equipment_id = null
+        payload.unlisted_name = unlistedInfo
+        }
 
-      await axios.post('http://localhost:3000/faults', payload);
-      setSuccessMessage('Fault report submitted successfully. Engineering has been notified.');
-      
+    await axios.post('http://localhost:3000/faults', payload);
+    setSuccessMessage('Fault report submitted successfully. Engineering has been notified.');
+    
       // Reset the form, including returning severity to 'Routine'
-      setFormData({
+    setFormData({
         equipment_id: '',
         reported_by: '',
         role: formData.role,
         description: '',
         severity: 'Routine'
-      });
-      setUnlistedInfo(''); 
+    });
+    setUnlistedInfo(''); 
 
-      setTimeout(() => setSuccessMessage(''), 3000);
+    setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
-      console.error('Error submitting fault report:', error);
-      alert('Failed to submit report. Please check the connection.');
+    console.error('Error submitting fault report:', error);
+    alert('Failed to submit report. Please check the connection.');
     }
-  };
+};
 
-  return (
+return (
     <div>
       <h2>Medical Staff: Report a Fault</h2>
       <p>Use this form to notify the engineering team of any equipment malfunctions.</p>
@@ -166,11 +168,10 @@ export default function MedicalStaffReport() {
                 name="description" 
                 value={formData.description} 
                 onChange={handleInputChange} 
-                required 
                 rows="4"
-                placeholder="What exactly is wrong with the machine?"
+                placeholder="What exactly is wrong with the machine? (Optional in emergencies)"
                 style={{ padding: '8px', marginTop: '5px' }}
-              />
+                />
             </label>
 
             <button type="submit" style={{ padding: '12px', backgroundColor: '#0056b3', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>

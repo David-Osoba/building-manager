@@ -54,11 +54,19 @@ export default function EngineerDashboard() {
     const weightB = { 'CRITICAL': 3, 'Urgent': 2, 'Routine': 1 }[b.severity] || 1;
     return weightB - weightA;
   });
-    const resolveFault = async (id) => {
+   const resolveFault = async (id) => {
   try {
+    const fault = faultReports.find(r => r.id === id)
     await axios.patch(`http://localhost:3000/faults/${id}`, { status: 'Resolved' })
-    const response = await axios.get('http://localhost:3000/faults')
-    setFaultReports(response.data)
+    if (fault.equipment_id) {
+      await axios.patch(`http://localhost:3000/equipment/${fault.equipment_id}`, { status: 'Working' })
+    }
+    const [faultRes, equipRes] = await Promise.all([
+      axios.get('http://localhost:3000/faults'),
+      axios.get('http://localhost:3000/equipment')
+    ])
+    setFaultReports(faultRes.data)
+    setEquipmentList(equipRes.data)
   } catch (error) {
     console.error('Error resolving fault:', error)
   }
