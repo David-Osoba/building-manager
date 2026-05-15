@@ -21,6 +21,7 @@ db.exec(`
     reported_by TEXT NOT NULL,
     role TEXT NOT NULL,
     description TEXT NOT NULL,
+    severity TEXT DEFAULT 'Routine', -- NEW COLUMN
     status TEXT DEFAULT 'Open',
     date_reported TEXT DEFAULT (datetime('now'))
   )

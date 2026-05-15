@@ -104,7 +104,18 @@ export default function EngineerDashboard() {
                   </span>
                 </td>
 
-                <td>{report.description}</td>
+                <td>
+  {report.description.startsWith('[UNLISTED MACHINE:') ? (
+    <span>
+      <span style={{ backgroundColor: '#fff3cd', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', color: '#856404' }}>
+        ⚠️ Unlisted
+      </span>
+      {' '}{report.description.replace(/\[UNLISTED MACHINE:.*?\] - /, '')}
+    </span>
+  ) : (
+    report.description
+  )}
+</td>
                 <td>{new Date(report.date_reported).toLocaleString()}</td>
                 <td>
   {report.status === 'Open' ? (

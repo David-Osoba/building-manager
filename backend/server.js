@@ -39,14 +39,27 @@ app.get('/faults', (req, res) => {
   res.json(faults)
 })
 
-// Submit a fault report
+// Inside server.js
 app.post('/faults', (req, res) => {
-  const { equipment_id, reported_by, role, description } = req.body
+  // 1. Add severity to the destructured body
+  const { equipment_id, reported_by, role, description, severity } = req.body;
+  
+  // 2. Add severity to the INSERT statement and values
   const result = db.prepare(`
-    INSERT INTO fault_reports (equipment_id, reported_by, role, description)
-    VALUES (?, ?, ?, ?)
-  `).run(equipment_id, reported_by, role, description)
-  res.json({ id: result.lastInsertRowid, message: 'Fault reported!' })
+    INSERT INTO fault_reports (equipment_id, reported_by, role, description, severity)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(equipment_id, reported_by, role, description, severity || 'Routine');
+  
+  res.json({ id: result.lastInsertRowid, message: 'Fault reported!' });
+});
+
+// Update fault report status
+app.patch('/faults/:id', (req, res) => {
+  const { status } = req.body
+  db.prepare(`
+    UPDATE fault_reports SET status = ? WHERE id = ?
+  `).run(status, req.params.id)
+  res.json({ message: 'Fault updated!' })
 })
 
 app.listen(PORT, () => {
