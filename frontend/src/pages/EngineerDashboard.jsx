@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-export default function EngineerDashboard() {
+export default function EngineerDashboard({ user }) {
   const [equipmentList, setEquipmentList] = useState([]);
   const [faultReports, setFaultReports] = useState([]); 
   const [formData, setFormData] = useState({
@@ -12,21 +12,24 @@ export default function EngineerDashboard() {
   });
   const [filter, setFilter] = useState('Open')
 
+  const fetchEquipment = async () => {
+    const response = await axios.get(`http://localhost:3000/equipment/role/${user.role}`)
+    setEquipmentList(response.data)
+  }
+
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         const [equipRes, faultRes] = await Promise.all([
-          axios.get('http://localhost:3000/equipment'),
+          axios.get(`http://localhost:3000/equipment/role/${user.role}`),
           axios.get('http://localhost:3000/faults')
         ]);
-        
         setEquipmentList(equipRes.data);
         setFaultReports(faultRes.data);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
-    
     loadInitialData();
   }, []);
 
@@ -38,77 +41,71 @@ export default function EngineerDashboard() {
     e.preventDefault();
     try {
       await axios.post('http://localhost:3000/equipment', formData);
-      
-      const response = await axios.get('http://localhost:3000/equipment');
-      setEquipmentList(response.data);
-      
+      await fetchEquipment();
       setFormData({ ...formData, name: '', location: '' }); 
     } catch (error) {
       console.error('Error adding equipment:', error);
     }
   };
 
-  // NEW: Sort faults so CRITICAL is always at the top, then Urgent, then Routine
-const filteredFaults = faultReports.filter(r => filter === 'All' ? true : r.status === filter)
-const sortedFaults = [...filteredFaults].sort((a, b) => {
-    // If severity is missing for some reason, default to 1 (Routine)
+  const filteredFaults = faultReports.filter(r => filter === 'All' ? true : r.status === filter)
+  const sortedFaults = [...filteredFaults].sort((a, b) => {
     const weightA = { 'CRITICAL': 3, 'Urgent': 2, 'Routine': 1 }[a.severity] || 1;
     const weightB = { 'CRITICAL': 3, 'Urgent': 2, 'Routine': 1 }[b.severity] || 1;
     return weightB - weightA;
   });
-   const resolveFault = async (id) => {
-  try {
-    const fault = faultReports.find(r => r.id === id)
-    await axios.patch(`http://localhost:3000/faults/${id}`, { status: 'Resolved' })
-    if (fault.equipment_id) {
-      await axios.patch(`http://localhost:3000/equipment/${fault.equipment_id}`, { status: 'Working' })
+
+  const resolveFault = async (id) => {
+    try {
+      const fault = faultReports.find(r => r.id === id)
+      await axios.patch(`http://localhost:3000/faults/${id}`, { status: 'Resolved' })
+      if (fault.equipment_id) {
+        await axios.patch(`http://localhost:3000/equipment/${fault.equipment_id}`, { status: 'Working' })
+      }
+      const [faultRes] = await Promise.all([
+        axios.get('http://localhost:3000/faults'),
+      ])
+      setFaultReports(faultRes.data)
+      await fetchEquipment()
+    } catch (error) {
+      console.error('Error resolving fault:', error)
     }
-    const [faultRes, equipRes] = await Promise.all([
-      axios.get('http://localhost:3000/faults'),
-      axios.get('http://localhost:3000/equipment')
-    ])
-    setFaultReports(faultRes.data)
-    setEquipmentList(equipRes.data)
-  } catch (error) {
-    console.error('Error resolving fault:', error)
   }
-}
 
   return (
     <div>
       <h2>Engineer Dashboard: Command Center</h2>
       
-      {/* Active Fault Reports Table */}
       <div style={{ marginBottom: '40px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
-  <h3 style={{ color: '#d9534f', margin: 0 }}>🚨 Fault Reports</h3>
-  <div style={{ display: 'flex', gap: '8px' }}>
-    {['Open', 'Resolved', 'All'].map(f => (
-      <button
-        key={f}
-        onClick={() => setFilter(f)}
-        style={{
-          padding: '4px 12px',
-          borderRadius: '20px',
-          border: '1px solid #ccc',
-          cursor: 'pointer',
-          fontWeight: filter === f ? 'bold' : 'normal',
-          backgroundColor: filter === f ? '#0056b3' : 'white',
-          color: filter === f ? 'white' : 'black'
-        }}
-      >
-        {f}
-      </button>
-    ))}
-  </div>
-</div>
+          <h3 style={{ color: '#d9534f', margin: 0 }}>🚨 Fault Reports</h3>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {['Open', 'Resolved', 'All'].map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                  border: '1px solid #ccc',
+                  cursor: 'pointer',
+                  fontWeight: filter === f ? 'bold' : 'normal',
+                  backgroundColor: filter === f ? '#0056b3' : 'white',
+                  color: filter === f ? 'white' : 'black'
+                }}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
         <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', background: '#fffafb' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #ccc' }}>
               <th>Report ID</th>
               <th>Reported By</th>
               <th>Role</th>
-              <th>Severity</th> {/* Added Severity Header */}
+              <th>Severity</th>
               <th>Description</th>
               <th>Date</th>
               <th>Status</th>
@@ -118,13 +115,11 @@ const sortedFaults = [...filteredFaults].sort((a, b) => {
             {sortedFaults.map((report) => (
               <tr key={report.id} style={{ 
                 borderBottom: '1px solid #eee',
-                backgroundColor: report.severity === 'CRITICAL' ? '#ffebee' : 'transparent' // Highlight critical rows
+                backgroundColor: report.severity === 'CRITICAL' ? '#ffebee' : 'transparent'
               }}>
                 <td>{report.id}</td>
                 <td>{report.reported_by}</td>
                 <td>{report.role}</td>
-                
-                {/* NEW: Severity Badge */}
                 <td>
                   <span style={{
                     padding: '3px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold',
@@ -134,36 +129,35 @@ const sortedFaults = [...filteredFaults].sort((a, b) => {
                     {report.severity || 'Routine'}
                   </span>
                 </td>
-
                 <td>
-  {report.description.startsWith('[UNLISTED MACHINE:') ? (
-    <span>
-      <span style={{ backgroundColor: '#fff3cd', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', color: '#856404' }}>
-        ⚠️ Unlisted
-      </span>
-      {' '}{report.description.replace(/\[UNLISTED MACHINE:.*?\] - /, '')}
-    </span>
-  ) : (
-    report.description
-  )}
-</td>
+                  {report.description.startsWith('[UNLISTED MACHINE:') ? (
+                    <span>
+                      <span style={{ backgroundColor: '#fff3cd', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', color: '#856404' }}>
+                        ⚠️ Unlisted
+                      </span>
+                      {' '}{report.description.replace(/\[UNLISTED MACHINE:.*?\] - /, '')}
+                    </span>
+                  ) : (
+                    report.description
+                  )}
+                </td>
                 <td>{new Date(report.date_reported).toLocaleString()}</td>
                 <td>
-  {report.status === 'Open' ? (
-    <button 
-      onClick={() => resolveFault(report.id)}
-      style={{ 
-        backgroundColor: '#28a745', color: 'white', 
-        border: 'none', padding: '4px 10px', 
-        borderRadius: '4px', cursor: 'pointer',
-        fontWeight: 'bold'
-      }}>
-      Mark Resolved
-    </button>
-  ) : (
-    <span style={{ color: 'green', fontWeight: 'bold' }}>✅ Resolved</span>
-  )}
-</td>
+                  {report.status === 'Open' ? (
+                    <button 
+                      onClick={() => resolveFault(report.id)}
+                      style={{ 
+                        backgroundColor: '#28a745', color: 'white', 
+                        border: 'none', padding: '4px 10px', 
+                        borderRadius: '4px', cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}>
+                      Mark Resolved
+                    </button>
+                  ) : (
+                    <span style={{ color: 'green', fontWeight: 'bold' }}>✅ Resolved</span>
+                  )}
+                </td>
               </tr>
             ))}
             {sortedFaults.length === 0 && (
@@ -175,7 +169,6 @@ const sortedFaults = [...filteredFaults].sort((a, b) => {
 
       <hr style={{ margin: '30px 0', border: '1px solid #ddd' }} />
 
-      {/* Form to log new equipment */}
       <div style={{ background: '#f4f4f4', padding: '15px', borderRadius: '5px', marginBottom: '20px' }}>
         <h3>Log New Equipment</h3>
         <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -196,7 +189,6 @@ const sortedFaults = [...filteredFaults].sort((a, b) => {
         </form>
       </div>
 
-      {/* Equipment Inventory Table */}
       <h3>Current Inventory</h3>
       <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
         <thead>

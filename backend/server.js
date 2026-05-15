@@ -77,6 +77,41 @@ db.prepare(`
 res.json({ message: 'Equipment updated!' })
 })
 
+// Login route
+app.post('/login', (req, res) => {
+  const { username, password } = req.body
+  const user = db.prepare('SELECT * FROM users WHERE username = ? AND password = ?')
+    .get(username, password)
+  
+  if (user) {
+    res.json({ 
+      success: true, 
+      user: { id: user.id, name: user.name, role: user.role, username: user.username }
+    })
+  } else {
+    res.status(401).json({ success: false, message: 'Invalid username or password' })
+  }
+})
+
+// Get equipment by role
+app.get('/equipment/role/:role', (req, res) => {
+  const { role } = req.params
+  let equipment
+
+  if (role === 'dialysis') {
+    equipment = db.prepare(`
+      SELECT * FROM equipment 
+      WHERE department = 'dialysis' OR name = 'Dialysis Water Pump'
+    `).all()
+  } else {
+    equipment = db.prepare(`
+      SELECT * FROM equipment 
+      WHERE department = 'general'
+    `).all()
+  }
+  res.json(equipment)
+})
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
 })

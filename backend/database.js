@@ -27,6 +27,24 @@ db.exec(`
   )
 `)
 
+// Users table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    role TEXT NOT NULL,
+    name TEXT NOT NULL
+  )
+`)
+
+// Add department column to equipment if it doesn't exist
+try {
+  db.exec(`ALTER TABLE equipment ADD COLUMN department TEXT DEFAULT 'general'`)
+} catch(e) {
+  // Column already exists, ignore
+}
+
 console.log('Database ready!')
 
 module.exports = db
