@@ -8,6 +8,7 @@ export default function EngineerDashboard({ user }) {
     name: '',
     location: '',
     status: 'Working',
+    department: 'general',
     last_checked: new Date().toISOString().split('T')[0] 
   });
   const [filter, setFilter] = useState('Open')
@@ -55,6 +56,16 @@ export default function EngineerDashboard({ user }) {
     return weightB - weightA;
   });
 
+  const deleteEquipment = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this equipment?')) return
+    try {
+      await axios.delete(`http://localhost:3000/equipment/${id}`)
+      await fetchEquipment()
+    } catch (error) {
+      console.error('Error deleting equipment:', error)
+    }
+  }
+
   const resolveFault = async (id) => {
     try {
       const fault = faultReports.find(r => r.id === id)
@@ -62,9 +73,7 @@ export default function EngineerDashboard({ user }) {
       if (fault.equipment_id) {
         await axios.patch(`http://localhost:3000/equipment/${fault.equipment_id}`, { status: 'Working' })
       }
-      const [faultRes] = await Promise.all([
-        axios.get('http://localhost:3000/faults'),
-      ])
+      const faultRes = await axios.get('http://localhost:3000/faults')
       setFaultReports(faultRes.data)
       await fetchEquipment()
     } catch (error) {
@@ -185,6 +194,10 @@ export default function EngineerDashboard({ user }) {
             <option value="Maintenance Required">Maintenance Required</option>
             <option value="Out of Order">Out of Order</option>
           </select>
+          <select name="department" value={formData.department} onChange={handleInputChange}>
+            <option value="general">General</option>
+            <option value="dialysis">Dialysis</option>
+          </select>
           <button type="submit" style={{ padding: '5px 15px', cursor: 'pointer' }}>Add Asset</button>
         </form>
       </div>
@@ -198,6 +211,7 @@ export default function EngineerDashboard({ user }) {
             <th>Location</th>
             <th>Status</th>
             <th>Last Checked</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -212,10 +226,22 @@ export default function EngineerDashboard({ user }) {
                 </span>
               </td>
               <td>{item.last_checked}</td>
+              <td>
+                <button
+                  onClick={() => deleteEquipment(item.id)}
+                  style={{
+                    backgroundColor: '#dc3545', color: 'white',
+                    border: 'none', padding: '4px 10px',
+                    borderRadius: '4px', cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}>
+                  🗑 Delete
+                </button>
+              </td>
             </tr>
           ))}
           {equipmentList.length === 0 && (
-            <tr><td colSpan="5" style={{ textAlign: 'center', padding: '10px' }}>No equipment logged yet.</td></tr>
+            <tr><td colSpan="6" style={{ textAlign: 'center', padding: '10px' }}>No equipment logged yet.</td></tr>
           )}
         </tbody>
       </table>

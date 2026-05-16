@@ -23,14 +23,13 @@ app.get('/equipment', (req, res) => {
 
 // Add new equipment
 app.post('/equipment', (req, res) => {
-  const { name, location, status, last_checked } = req.body
+  const { name, location, status, last_checked, department } = req.body
   const result = db.prepare(`
-    INSERT INTO equipment (name, location, status, last_checked)
-    VALUES (?, ?, ?, ?)
-  `).run(name, location, status, last_checked)
+    INSERT INTO equipment (name, location, status, last_checked, department)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(name, location, status, last_checked, department || 'general')
   res.json({ id: result.lastInsertRowid, message: 'Equipment added!' })
 })
-
 // --- FAULT REPORT ROUTES ---
 
 // Get all fault reports
@@ -110,6 +109,12 @@ app.get('/equipment/role/:role', (req, res) => {
     `).all()
   }
   res.json(equipment)
+})
+
+// Delete equipment
+app.delete('/equipment/:id', (req, res) => {
+  db.prepare('DELETE FROM equipment WHERE id = ?').run(req.params.id)
+  res.json({ message: 'Equipment deleted!' })
 })
 
 app.listen(PORT, () => {
