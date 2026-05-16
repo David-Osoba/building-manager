@@ -22,57 +22,56 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', display: 'flex', alignItems: 'center', 
-      justifyContent: 'center', backgroundColor: '#f0f2f5' 
-    }}>
-      <div style={{ 
-        background: 'white', padding: '40px', borderRadius: '10px', 
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)', width: '100%', maxWidth: '380px' 
-      }}>
-        <h1 style={{ textAlign: 'center', marginBottom: '5px' }}>🏥 Building Manager</h1>
-        <p style={{ textAlign: 'center', color: '#666', marginBottom: '30px' }}>Engineer Portal</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-blue-800 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+        
+        <div className="text-center mb-8">
+          <div className="text-5xl mb-3">🏥</div>
+          <h1 className="text-2xl font-bold text-gray-800">Building Manager</h1>
+          <p className="text-gray-500 mt-1">Government Engineering Portal</p>
+        </div>
 
         {error && (
-          <div style={{ background: '#ffebee', color: '#c62828', padding: '10px', borderRadius: '5px', marginBottom: '15px' }}>
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Username</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Username</label>
             <input
               type="text"
               value={credentials.username}
               onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
               required
               placeholder="Enter your username"
-              style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Password</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
             <input
               type="password"
               value={credentials.password}
               onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
               required
               placeholder="Enter your password"
-              style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
           </div>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
-            style={{ 
-              padding: '12px', backgroundColor: '#0056b3', color: 'white', 
-              border: 'none', borderRadius: '5px', cursor: 'pointer', 
-              fontWeight: 'bold', fontSize: '16px' 
-            }}>
+            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition duration-200 mt-2"
+          >
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
+
+        <p className="text-center text-xs text-gray-400 mt-6">
+          Medical staff — use the report form directly
+        </p>
       </div>
     </div>
   );

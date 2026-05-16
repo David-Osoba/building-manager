@@ -8,10 +8,9 @@ export default function MedicalStaffReport() {
     reported_by: '',
     role: 'Nurse',
     description: '',
-    severity: 'Routine' // Added severity to initial state
+    severity: 'Routine'
   });
-  
-  const [unlistedInfo, setUnlistedInfo] = useState(''); 
+  const [unlistedInfo, setUnlistedInfo] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
@@ -33,153 +32,172 @@ export default function MedicalStaffReport() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-    const payload = { ...formData };
-        if (!payload.description) {
+      const payload = { ...formData };
+      if (!payload.description) {
         payload.description = 'No description provided - Emergency submission';
-        }
-        if (payload.equipment_id === 'unlisted') {
-        payload.equipment_id = null
-        payload.unlisted_name = unlistedInfo
-        }
-
-    await axios.post('http://localhost:3000/faults', payload);
-    setSuccessMessage('Fault report submitted successfully. Engineering has been notified.');
-    
-      // Reset the form, including returning severity to 'Routine'
-    setFormData({
+      }
+      if (payload.equipment_id === 'unlisted') {
+        payload.equipment_id = null;
+        payload.unlisted_name = unlistedInfo;
+      }
+      await axios.post('http://localhost:3000/faults', payload);
+      setSuccessMessage('Fault report submitted! Engineering has been notified.');
+      setFormData({
         equipment_id: '',
         reported_by: '',
         role: formData.role,
         description: '',
         severity: 'Routine'
-    });
-    setUnlistedInfo(''); 
-
-    setTimeout(() => setSuccessMessage(''), 3000);
+      });
+      setUnlistedInfo('');
+      setTimeout(() => setSuccessMessage(''), 4000);
     } catch (error) {
-    console.error('Error submitting fault report:', error);
-    alert('Failed to submit report. Please check the connection.');
+      console.error('Error submitting fault report:', error);
+      alert('Failed to submit. Please check connection.');
     }
-};
+  };
 
-return (
-    <div>
-      <h2>Medical Staff: Report a Fault</h2>
-      <p>Use this form to notify the engineering team of any equipment malfunctions.</p>
+  return (
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="max-w-xl mx-auto">
 
-      {successMessage && (
-        <div style={{ background: '#d4edda', color: '#155724', padding: '10px', borderRadius: '5px', marginBottom: '15px' }}>
-          {successMessage}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">🚨 Report a Fault</h1>
+          <p className="text-gray-500 text-sm mt-1">Notify the engineering team of any equipment malfunction.</p>
         </div>
-      )}
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '400px' }}>
-        
-        <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px', border: '1px solid #dee2e6' }}>
-          <label style={{ display: 'flex', flexDirection: 'column' }}>
-            <strong style={{ marginBottom: '8px' }}>Step 1: Select the Broken Machine</strong>
-            <select 
-              name="equipment_id" 
-              value={formData.equipment_id} 
-              onChange={handleInputChange} 
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-4 text-sm font-medium">
+            ✅ {successMessage}
+          </div>
+        )}
+
+        <div className="bg-white rounded-xl shadow p-6 space-y-5">
+
+          {/* Machine Selection */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Select Machine
+            </label>
+            <select
+              name="equipment_id"
+              value={formData.equipment_id}
+              onChange={handleInputChange}
               required
-              style={{ padding: '10px', fontSize: '16px', borderRadius: '4px', border: '1px solid #ccc' }}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="" disabled>-- Select a machine --</option>
-              <option value="unlisted" style={{ fontWeight: 'bold', color: 'blue' }}>
-                -- Unlisted / Unknown Machine --
-              </option>
+              <option value="unlisted">⚠️ Unlisted / Unknown Machine</option>
               {equipmentList.map(item => (
                 <option key={item.id} value={item.id}>
-                  {item.name} (Location: {item.location})
+                  {item.name} — {item.location}
                 </option>
               ))}
             </select>
-          </label>
-        </div>
+          </div>
 
-        {formData.equipment_id === 'unlisted' && (
-          <div style={{ background: '#fff3cd', padding: '15px', borderRadius: '8px', border: '1px solid #ffeeba', animation: 'fadeIn 0.3s' }}>
-            <label style={{ display: 'flex', flexDirection: 'column' }}>
-              <strong style={{ color: '#856404' }}>Machine Details (Name & Location):</strong>
-              <input 
-                type="text" 
-                value={unlistedInfo} 
-                onChange={(e) => setUnlistedInfo(e.target.value)} 
-                required 
+          {/* Unlisted Machine Input */}
+          {formData.equipment_id === 'unlisted' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <label className="block text-sm font-semibold text-yellow-800 mb-1">
+                Machine Name & Location
+              </label>
+              <input
+                type="text"
+                value={unlistedInfo}
+                onChange={(e) => setUnlistedInfo(e.target.value)}
+                required
                 placeholder="e.g., Blood Pressure Monitor in Room 102"
-                style={{ padding: '8px', marginTop: '5px', border: '1px solid #ffeeba' }}
+                className="w-full px-4 py-2 border border-yellow-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
               />
-            </label>
-          </div>
-        )}
+            </div>
+          )}
 
-        {formData.equipment_id && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', animation: 'fadeIn 0.5s' }}>
-            <label style={{ display: 'flex', flexDirection: 'column' }}>
-              <strong>Your Name:</strong>
-              <input 
-                type="text" 
-                name="reported_by" 
-                value={formData.reported_by} 
-                onChange={handleInputChange} 
-                required 
-                placeholder="e.g., Jane Doe"
-                style={{ padding: '8px', marginTop: '5px' }}
-              />
-            </label>
-
-            <label style={{ display: 'flex', flexDirection: 'column' }}>
-              <strong>Your Role:</strong>
-              <select 
-                name="role" 
-                value={formData.role} 
-                onChange={handleInputChange}
-                style={{ padding: '8px', marginTop: '5px' }}
-              >
-                <option value="Nurse">Nurse</option>
-                <option value="Doctor">Doctor</option>
-                <option value="Technician">Technician</option>
-              </select>
-            </label>
-
-            {/* NEW: Severity Toggle */}
-            <label style={{ display: 'flex', flexDirection: 'column', marginTop: '5px' }}>
-              <strong>Severity Level:</strong>
-              <div style={{ display: 'flex', gap: '15px', marginTop: '8px' }}>
-                <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <input type="radio" name="severity" value="Routine" checked={formData.severity === 'Routine'} onChange={handleInputChange} />
-                  🟢 Routine
-                </label>
-                <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <input type="radio" name="severity" value="Urgent" checked={formData.severity === 'Urgent'} onChange={handleInputChange} />
-                  🟡 Urgent
-                </label>
-                <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', color: 'red', fontWeight: 'bold' }}>
-                  <input type="radio" name="severity" value="CRITICAL" checked={formData.severity === 'CRITICAL'} onChange={handleInputChange} />
-                  🔴 CRITICAL
-                </label>
-              </div>
-            </label>
-
-            <label style={{ display: 'flex', flexDirection: 'column' }}>
-              <strong>Describe the Issue:</strong>
-              <textarea 
-                name="description" 
-                value={formData.description} 
-                onChange={handleInputChange} 
-                rows="4"
-                placeholder="What exactly is wrong with the machine? (Optional in emergencies)"
-                style={{ padding: '8px', marginTop: '5px' }}
+          {/* Rest of form — shows after machine selected */}
+          {formData.equipment_id && (
+            <>
+              {/* Reporter Name */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Your Name</label>
+                <input
+                  type="text"
+                  name="reported_by"
+                  value={formData.reported_by}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="e.g., Jane Doe"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-            </label>
+              </div>
 
-            <button type="submit" style={{ padding: '12px', backgroundColor: '#0056b3', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>
-              Submit Report
-            </button>
-          </div>
-        )}
-      </form>
+              {/* Role */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Your Role</label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Nurse">Nurse</option>
+                  <option value="Doctor">Doctor</option>
+                  <option value="Technician">Technician</option>
+                </select>
+              </div>
+
+              {/* Severity */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Severity Level</label>
+                <div className="flex gap-3">
+                  {[
+                    { value: 'Routine', label: '🟢 Routine', color: 'border-green-400 bg-green-50 text-green-700' },
+                    { value: 'Urgent', label: '🟡 Urgent', color: 'border-yellow-400 bg-yellow-50 text-yellow-700' },
+                    { value: 'CRITICAL', label: '🔴 CRITICAL', color: 'border-red-500 bg-red-50 text-red-700' },
+                  ].map(s => (
+                    <label key={s.value} className={`flex-1 text-center border-2 rounded-lg py-2 text-sm font-bold cursor-pointer transition ${
+                      formData.severity === s.value ? s.color : 'border-gray-200 text-gray-400'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="severity"
+                        value={s.value}
+                        checked={formData.severity === s.value}
+                        onChange={handleInputChange}
+                        className="hidden"
+                      />
+                      {s.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Describe the Issue <span className="text-gray-400 font-normal">(optional in emergencies)</span>
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows="4"
+                  placeholder="What exactly is wrong with the machine?"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                onClick={handleSubmit}
+                className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition text-sm"
+              >
+                Submit Fault Report
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,13 +3,13 @@ import axios from 'axios';
 
 export default function EngineerDashboard({ user }) {
   const [equipmentList, setEquipmentList] = useState([]);
-  const [faultReports, setFaultReports] = useState([]); 
+  const [faultReports, setFaultReports] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     location: '',
     status: 'Working',
     department: 'general',
-    last_checked: new Date().toISOString().split('T')[0] 
+    last_checked: new Date().toISOString().split('T')[0]
   });
   const [filter, setFilter] = useState('Open')
 
@@ -43,7 +43,7 @@ export default function EngineerDashboard({ user }) {
     try {
       await axios.post('http://localhost:3000/equipment', formData);
       await fetchEquipment();
-      setFormData({ ...formData, name: '', location: '' }); 
+      setFormData({ ...formData, name: '', location: '' });
     } catch (error) {
       console.error('Error adding equipment:', error);
     }
@@ -81,170 +81,200 @@ export default function EngineerDashboard({ user }) {
     }
   }
 
+  const severityBadge = (severity) => {
+    const styles = {
+      'CRITICAL': 'bg-red-600 text-white',
+      'Urgent': 'bg-yellow-400 text-black',
+      'Routine': 'bg-green-200 text-green-800',
+    }
+    return `px-2 py-1 rounded-full text-xs font-bold ${styles[severity] || styles['Routine']}`
+  }
+
   return (
-    <div>
-      <h2>Engineer Dashboard: Command Center</h2>
-      
-      <div style={{ marginBottom: '40px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
-          <h3 style={{ color: '#d9534f', margin: 0 }}>🚨 Fault Reports</h3>
-          <div style={{ display: 'flex', gap: '8px' }}>
+    <div className="space-y-6">
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl shadow p-4 border-l-4 border-red-500">
+          <p className="text-sm text-gray-500">Open Faults</p>
+          <p className="text-3xl font-bold text-red-600">{faultReports.filter(r => r.status === 'Open').length}</p>
+        </div>
+        <div className="bg-white rounded-xl shadow p-4 border-l-4 border-green-500">
+          <p className="text-sm text-gray-500">Total Equipment</p>
+          <p className="text-3xl font-bold text-green-600">{equipmentList.length}</p>
+        </div>
+        <div className="bg-white rounded-xl shadow p-4 border-l-4 border-yellow-500">
+          <p className="text-sm text-gray-500">Faulty Equipment</p>
+          <p className="text-3xl font-bold text-yellow-600">{equipmentList.filter(e => e.status !== 'Working').length}</p>
+        </div>
+      </div>
+
+      {/* Fault Reports */}
+      <div className="bg-white rounded-xl shadow p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-800">🚨 Fault Reports</h2>
+          <div className="flex gap-2">
             {['Open', 'Resolved', 'All'].map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                style={{
-                  padding: '4px 12px',
-                  borderRadius: '20px',
-                  border: '1px solid #ccc',
-                  cursor: 'pointer',
-                  fontWeight: filter === f ? 'bold' : 'normal',
-                  backgroundColor: filter === f ? '#0056b3' : 'white',
-                  color: filter === f ? 'white' : 'black'
-                }}
+                className={`px-4 py-1 rounded-full text-sm font-semibold border transition ${
+                  filter === f
+                    ? 'bg-blue-700 text-white border-blue-700'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                }`}
               >
                 {f}
               </button>
             ))}
           </div>
         </div>
-        <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', background: '#fffafb' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid #ccc' }}>
-              <th>Report ID</th>
-              <th>Reported By</th>
-              <th>Role</th>
-              <th>Severity</th>
-              <th>Description</th>
-              <th>Date</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedFaults.map((report) => (
-              <tr key={report.id} style={{ 
-                borderBottom: '1px solid #eee',
-                backgroundColor: report.severity === 'CRITICAL' ? '#ffebee' : 'transparent'
-              }}>
-                <td>{report.id}</td>
-                <td>{report.reported_by}</td>
-                <td>{report.role}</td>
-                <td>
-                  <span style={{
-                    padding: '3px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold',
-                    backgroundColor: report.severity === 'CRITICAL' ? 'red' : report.severity === 'Urgent' ? 'gold' : 'lightgreen',
-                    color: report.severity === 'CRITICAL' ? 'white' : 'black'
-                  }}>
-                    {report.severity || 'Routine'}
-                  </span>
-                </td>
-                <td>
-                  {report.description.startsWith('[UNLISTED MACHINE:') ? (
-                    <span>
-                      <span style={{ backgroundColor: '#fff3cd', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', color: '#856404' }}>
-                        ⚠️ Unlisted
-                      </span>
-                      {' '}{report.description.replace(/\[UNLISTED MACHINE:.*?\] - /, '')}
-                    </span>
-                  ) : (
-                    report.description
-                  )}
-                </td>
-                <td>{new Date(report.date_reported).toLocaleString()}</td>
-                <td>
-                  {report.status === 'Open' ? (
-                    <button 
-                      onClick={() => resolveFault(report.id)}
-                      style={{ 
-                        backgroundColor: '#28a745', color: 'white', 
-                        border: 'none', padding: '4px 10px', 
-                        borderRadius: '4px', cursor: 'pointer',
-                        fontWeight: 'bold'
-                      }}>
-                      Mark Resolved
-                    </button>
-                  ) : (
-                    <span style={{ color: 'green', fontWeight: 'bold' }}>✅ Resolved</span>
-                  )}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr className="border-b-2 border-gray-200 text-gray-600">
+                <th className="pb-2 pr-4">ID</th>
+                <th className="pb-2 pr-4">Reported By</th>
+                <th className="pb-2 pr-4">Role</th>
+                <th className="pb-2 pr-4">Severity</th>
+                <th className="pb-2 pr-4">Description</th>
+                <th className="pb-2 pr-4">Date</th>
+                <th className="pb-2">Action</th>
               </tr>
-            ))}
-            {sortedFaults.length === 0 && (
-              <tr><td colSpan="7" style={{ textAlign: 'center', padding: '15px' }}>No active faults. All clear!</td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {sortedFaults.map((report) => (
+                <tr key={report.id} className={`border-b border-gray-100 ${report.severity === 'CRITICAL' ? 'bg-red-50' : ''}`}>
+                  <td className="py-3 pr-4 text-gray-500">#{report.id}</td>
+                  <td className="py-3 pr-4 font-medium">{report.reported_by}</td>
+                  <td className="py-3 pr-4 text-gray-600">{report.role}</td>
+                  <td className="py-3 pr-4">
+                    <span className={severityBadge(report.severity)}>
+                      {report.severity || 'Routine'}
+                    </span>
+                  </td>
+                  <td className="py-3 pr-4 max-w-xs">
+                    {report.description.startsWith('[UNLISTED MACHINE:') ? (
+                      <span>
+                        <span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded mr-1">
+                          ⚠️ Unlisted
+                        </span>
+                        {report.description.replace(/\[UNLISTED MACHINE:.*?\] - /, '')}
+                      </span>
+                    ) : report.description}
+                  </td>
+                  <td className="py-3 pr-4 text-gray-500 text-xs">{new Date(report.date_reported).toLocaleString()}</td>
+                  <td className="py-3">
+                    {report.status === 'Open' ? (
+                      <button
+                        onClick={() => resolveFault(report.id)}
+                        className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-1 rounded-lg transition">
+                        ✓ Resolve
+                      </button>
+                    ) : (
+                      <span className="text-green-600 font-bold text-xs">✅ Resolved</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {sortedFaults.length === 0 && (
+                <tr>
+                  <td colSpan="7" className="text-center py-8 text-gray-400">
+                    No fault reports found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <hr style={{ margin: '30px 0', border: '1px solid #ddd' }} />
-
-      <div style={{ background: '#f4f4f4', padding: '15px', borderRadius: '5px', marginBottom: '20px' }}>
-        <h3>Log New Equipment</h3>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <input 
-            type="text" name="name" placeholder="Equipment Name" 
-            value={formData.name} onChange={handleInputChange} required 
+      {/* Add Equipment Form */}
+      <div className="bg-white rounded-xl shadow p-5">
+        <h2 className="text-lg font-bold text-gray-800 mb-4">➕ Log New Equipment</h2>
+        <form onSubmit={handleSubmit} className="flex flex-wrap gap-3">
+          <input
+            type="text" name="name" placeholder="Equipment Name"
+            value={formData.name} onChange={handleInputChange} required
+            className="flex-1 min-w-40 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <input 
-            type="text" name="location" placeholder="Location" 
-            value={formData.location} onChange={handleInputChange} required 
+          <input
+            type="text" name="location" placeholder="Location"
+            value={formData.location} onChange={handleInputChange} required
+            className="flex-1 min-w-40 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <select name="status" value={formData.status} onChange={handleInputChange}>
+          <select name="status" value={formData.status} onChange={handleInputChange}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="Working">Working</option>
             <option value="Maintenance Required">Maintenance Required</option>
             <option value="Out of Order">Out of Order</option>
           </select>
-          <select name="department" value={formData.department} onChange={handleInputChange}>
+          <select name="department" value={formData.department} onChange={handleInputChange}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="general">General</option>
             <option value="dialysis">Dialysis</option>
           </select>
-          <button type="submit" style={{ padding: '5px 15px', cursor: 'pointer' }}>Add Asset</button>
+          <button type="submit"
+            className="bg-blue-700 hover:bg-blue-800 text-white font-bold px-6 py-2 rounded-lg text-sm transition">
+            Add Asset
+          </button>
         </form>
       </div>
 
-      <h3>Current Inventory</h3>
-      <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ borderBottom: '2px solid #ccc' }}>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Location</th>
-            <th>Status</th>
-            <th>Last Checked</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {equipmentList.map((item) => (
-            <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
-              <td>{item.id}</td>
-              <td>{item.name}</td>
-              <td>{item.location}</td>
-              <td>
-                <span style={{ color: item.status === 'Working' ? 'green' : 'red', fontWeight: 'bold' }}>
-                  {item.status}
-                </span>
-              </td>
-              <td>{item.last_checked}</td>
-              <td>
-                <button
-                  onClick={() => deleteEquipment(item.id)}
-                  style={{
-                    backgroundColor: '#dc3545', color: 'white',
-                    border: 'none', padding: '4px 10px',
-                    borderRadius: '4px', cursor: 'pointer',
-                    fontWeight: 'bold'
-                  }}>
-                  🗑 Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-          {equipmentList.length === 0 && (
-            <tr><td colSpan="6" style={{ textAlign: 'center', padding: '10px' }}>No equipment logged yet.</td></tr>
-          )}
-        </tbody>
-      </table>
+      {/* Equipment Inventory */}
+      <div className="bg-white rounded-xl shadow p-5">
+        <h2 className="text-lg font-bold text-gray-800 mb-4">📦 Current Inventory</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr className="border-b-2 border-gray-200 text-gray-600">
+                <th className="pb-2 pr-4">ID</th>
+                <th className="pb-2 pr-4">Name</th>
+                <th className="pb-2 pr-4">Location</th>
+                <th className="pb-2 pr-4">Status</th>
+                <th className="pb-2 pr-4">Last Checked</th>
+                <th className="pb-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {equipmentList.map((item) => (
+                <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-3 pr-4 text-gray-500">#{item.id}</td>
+                  <td className="py-3 pr-4 font-medium">{item.name}</td>
+                  <td className="py-3 pr-4 text-gray-600">{item.location}</td>
+                  <td className="py-3 pr-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                      item.status === 'Working'
+                        ? 'bg-green-100 text-green-700'
+                        : item.status === 'Maintenance Required'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-red-100 text-red-700'
+                    }`}>
+                      {item.status}
+                    </span>
+                  </td>
+                  <td className="py-3 pr-4 text-gray-500">{item.last_checked}</td>
+                  <td className="py-3">
+                    <button
+                      onClick={() => deleteEquipment(item.id)}
+                      className="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-lg transition">
+                      🗑 Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {equipmentList.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="text-center py-8 text-gray-400">
+                    No equipment logged yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   );
 }
